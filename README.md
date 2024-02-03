@@ -1,5 +1,7 @@
 # Tiktaalik 🐟➡️🐊
 
+[![codecov](https://codecov.io/gh/rautio/tiktaalik/graph/badge.svg?token=PRZXURT5UW)](https://codecov.io/gh/rautio/tiktaalik)
+
 Simulate the evolution of fish learning to walk on land powered by neural networks and genetic algorithms. Written in Rust and compiled into WebAssembly.
 
 
