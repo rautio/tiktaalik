@@ -7,7 +7,7 @@ pub struct Layer {
 }
 
 impl Layer {
-    pub fn new(neurons: Vec<Neuron>) -> Self {
+    pub(crate) fn new(neurons: Vec<Neuron>) -> Self {
         assert!(!neurons.is_empty());
         // Make sure all neurons are the same size
         assert!(neurons
@@ -61,6 +61,22 @@ mod tests {
 
             approx::assert_relative_eq!(actual_biases.as_slice(), expected_biases.as_slice());
             approx::assert_relative_eq!(actual_weights.as_slice(), expected_weights.as_slice());
+        }
+    }
+
+    mod propagate {
+        use super::*;
+        #[test]
+        fn test() {
+            let neurons = vec![
+                Neuron::new(0.3, vec![-0.3, 0.8, 0.11]),
+                Neuron::new(-0.2, vec![0.3, 0.4, 0.5]),
+            ];
+            let layer = Layer::new(vec![neurons[0].clone(), neurons[1].clone()]);
+            let inputs = &[-0.25, 0.25, 0.75];
+            let actual = layer.propagate(inputs.to_vec());
+            let expected = vec![neurons[0].propagate(inputs), neurons[1].propagate(inputs)];
+            approx::assert_relative_eq!(actual.as_slice(), expected.as_slice());
         }
     }
 }

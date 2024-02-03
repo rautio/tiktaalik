@@ -89,4 +89,24 @@ mod tests {
             );
         }
     }
+
+    mod propagate {
+        use super::*;
+
+        #[test]
+        fn test() {
+            let layers = (
+                Layer::new(vec![
+                    Neuron::new(0.1, vec![-0.24, 0.5, 0.61]),
+                    Neuron::new(-0.3, vec![0.6, 0.8, 0.9]),
+                ]),
+                Layer::new(vec![Neuron::new(0.2, vec![0.1, 0.2])]),
+            );
+            let network = Network::new(vec![layers.0.clone(), layers.1.clone()]);
+            let inputs = &[-0.6, 0.1, 0.8];
+            let actual = network.propagate(inputs.to_vec());
+            let expected = layers.1.propagate(layers.0.propagate(inputs.to_vec()));
+            approx::assert_relative_eq!(actual.as_slice(), expected.as_slice());
+        }
+    }
 }
