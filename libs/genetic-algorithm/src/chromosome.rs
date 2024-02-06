@@ -1,4 +1,6 @@
 use crate::*;
+use std::iter::FromIterator;
+use std::ops::Index;
 
 #[derive(Clone, Debug)]
 pub struct Chromosome {
@@ -16,6 +18,14 @@ impl Chromosome {
 
     pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut f32> {
         self.genes.iter_mut()
+    }
+}
+
+impl Index<usize> for Chromosome {
+    type Output = f32;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        &self.genes[index]
     }
 }
 
@@ -67,6 +77,18 @@ mod tests {
             assert_eq!(genes[0], &30.0);
             assert_eq!(genes[1], &10.0);
             assert_eq!(genes[2], &20.0);
+        }
+    }
+
+    mod index {
+        use super::*;
+
+        #[test]
+        fn test() {
+            let chromosome = chromosome();
+            assert_eq!(chromosome[0], 3.0);
+            assert_eq!(chromosome[1], 1.0);
+            assert_eq!(chromosome[2], 2.0);
         }
     }
 }
