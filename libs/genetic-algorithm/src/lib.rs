@@ -46,8 +46,8 @@ where
                 // Mutate the child by introducing new genes not present in the parent
                 // This helps avoid a local optimum and explore new paths in the population
                 self.mutation_method.mutate(rng, &mut child);
-                // TODO Convert chromosome to individual
-                todo!();
+
+                I::create(child)
             })
             .collect()
     }
