@@ -5,7 +5,7 @@ use rand::Rng;
 pub struct UniformCrossover;
 
 impl UniformCrossover {
-    fn new() -> Self {
+    pub fn new() -> Self {
         Self
     }
 }
