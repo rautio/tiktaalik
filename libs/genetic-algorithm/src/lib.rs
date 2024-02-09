@@ -90,6 +90,10 @@ mod tests {
             individual(&[1.8600199, 4.588976, 0.34133443]),
             individual(&[1.3374946, 4.392836, 1.9752667]),
         ];
+        assert_eq!(expected[0].fitness(), 8.958158);
+        assert_eq!(expected[1].fitness(), 4.765891);
+        assert_eq!(expected[2].fitness(), 6.79033);
+        assert_eq!(expected[3].fitness(), 7.705597);
 
         assert_eq!(population, expected);
     }
