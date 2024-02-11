@@ -18,7 +18,17 @@ function drawTriangle(ctxt, x, y, size, rotation) {
     x - Math.sin(rotation) * size * 1.5,
     y + Math.cos(rotation) * size * 1.5,
   );
+  ctxt.fillStyle = 'rgb(255,255,255)';
+  ctxt.fill();
   ctxt.stroke();
+}
+
+function drawCircle(ctxt, x, y, radius) {
+  ctxt.beginPath();
+  ctxt.arc(x, y, radius, 0, 2.0 * Math.PI);
+
+  ctxt.fillStyle = 'rgb(0,255,128)';
+  ctxt.fill();
 }
 
 const simulation = new sim.Simulation();
@@ -41,11 +51,32 @@ ctxt.scale(viewportScale, viewportScale);
 
 ctxt.fillStyle = 'rgb(0,0,0)';
 
-for (const animal of simulation.world().animals) {
-  drawTriangle(
-    ctxt,
-    animal.x * viewportWidth,
-    animal.y * viewportHeight,
-    0.01 * viewportWidth,
-    animal.rotation);
+
+function redraw() {
+  ctxt.clearRect(0,0, viewportWidth, viewportHeight);
+
+  simulation.step();
+
+  const world = simulation.world();
+
+  for (const food of world.foods) {
+    drawCircle(
+      ctxt,
+      food.x * viewportWidth,
+      food.y * viewportHeight,
+      (0.01 / 2.0) * viewportWidth,
+    )
+  }
+
+  for (const animal of world.animals) {
+    drawTriangle(
+      ctxt,
+      animal.x * viewportWidth,
+      animal.y * viewportHeight,
+      0.01 * viewportWidth,
+      animal.rotation);
+  }
+  requestAnimationFrame(redraw);
 }
+
+redraw();
