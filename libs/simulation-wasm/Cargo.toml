@@ -9,4 +9,8 @@ edition = "2021"
 crate-type=["cdylib"]
 
 [dependencies]
-wasm-bindgen = "0.2.91"
+rand = "0.8.5"
+wasm-bindgen = {version = "0.2.91", features = ["serde-serialize"] }
+lib-simulation = { path = "../simulation" }
+getrandom = { version = "0.2.12", features = ["js"] }
+serde = { version = "1.0.196", features = ["derive"] }
