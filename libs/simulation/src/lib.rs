@@ -1,12 +1,18 @@
 pub use self::{animal::*, eye::*, food::*, world::*};
+use lib_neural_network as nn;
 use nalgebra as na;
 use rand::{Rng, RngCore};
+use std::f32::consts::FRAC_PI_2;
 
 mod animal;
 mod eye;
 mod food;
 mod world;
 
+const MIN_SPEED: f32 = 0.001;
+const MAX_SPEED: f32 = 0.005;
+const SPEED_ACCEL: f32 = 0.2;
+const ROTATION_ACCEL: f32 = FRAC_PI_2;
 pub struct Simulation {
     world: World,
 }
@@ -23,6 +29,7 @@ impl Simulation {
 
     pub fn step(&mut self, rng: &mut dyn RngCore) {
         self.process_collisions(rng);
+        self.process_brains();
         self.process_movements();
     }
     pub fn process_movements(&mut self) {
@@ -40,6 +47,19 @@ impl Simulation {
                     food.position = rng.gen();
                 }
             }
+        }
+    }
+    pub fn process_brains(&mut self) {
+        for animal in &mut self.world.animals {
+            let vision =
+                animal
+                    .eye
+                    .process_vision(animal.position, animal.rotation, &self.world.foods);
+            let response = animal.brain.propagate(vision);
+            let speed = response[0].clamp(-SPEED_ACCEL, SPEED_ACCEL);
+            let rotation = response[1].clamp(-ROTATION_ACCEL, ROTATION_ACCEL);
+            animal.speed = (animal.speed + speed).clamp(MIN_SPEED, MAX_SPEED);
+            animal.rotation = na::Rotation2::new(animal.rotation.angle() + rotation);
         }
     }
 }
