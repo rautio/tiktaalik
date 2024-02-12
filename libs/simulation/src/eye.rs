@@ -2,7 +2,7 @@ use crate::*;
 use std::f32::consts::*;
 
 #[derive(Debug)]
-pub struct Eye {
+pub(crate) struct Eye {
     fov_range: f32,
     fov_angle: f32,
     cells: usize,
@@ -13,7 +13,7 @@ const FOV_ANGLE: f32 = PI * FRAC_PI_4;
 const CELLS: usize = 9;
 
 impl Eye {
-    pub fn new(fov_range: f32, fov_angle: f32, cells: usize) -> Self {
+    pub(crate) fn new(fov_range: f32, fov_angle: f32, cells: usize) -> Self {
         assert!(fov_range > 0.0);
         assert!(fov_angle > 0.0);
         assert!(cells > 0);
@@ -25,40 +25,42 @@ impl Eye {
         }
     }
 
-    pub fn cells(&self) -> usize {
+    pub(crate) fn cells(&self) -> usize {
         self.cells
     }
 
-    pub fn process_vision(
+    pub(crate) fn process_vision(
         &self,
         position: na::Point2<f32>,
         rotation: na::Rotation2<f32>,
         foods: &[Food],
     ) -> Vec<f32> {
         let mut cells = vec![0.0; self.cells];
+
         for food in foods {
-            // Determine if food is within range
-            let vector = food.position - position;
-            let dist = vector.norm();
-            if dist >= self.fov_range {
+            let vec = food.position - position;
+            let dist = vec.norm();
+
+            if dist > self.fov_range {
                 continue;
             }
-            // Determine if food is within field of view
-            let angle = na::Rotation2::rotation_between(&na::Vector2::y(), &vector).angle();
+
+            let angle = na::Rotation2::rotation_between(&na::Vector2::y(), &vec).angle();
             let angle = angle - rotation.angle();
             let angle = na::wrap(angle, -PI, PI);
+
             if angle < -self.fov_angle / 2.0 || angle > self.fov_angle / 2.0 {
                 continue;
             }
-            // Determine which cell sees the food
-            let angle = angle + self.fov_range / 2.0;
+
+            let angle = angle + self.fov_angle / 2.0;
             let cell = angle / self.fov_angle;
             let cell = cell * (self.cells as f32);
             let cell = (cell as usize).min(cells.len() - 1);
-            // Determine energy
-            let energy = (self.fov_range - dist) / self.fov_range;
-            cells[cell] += energy;
+
+            cells[cell] += (self.fov_range - dist) / self.fov_range;
         }
+
         cells
     }
 }
@@ -80,7 +82,7 @@ mod tests {
         x: f32,
         y: f32,
         rot: f32,
-        expected_vision: &'static str,
+        expected: &'static str,
     }
     const TEST_EYE_CELLS: usize = 13;
     impl TestCase {
@@ -98,7 +100,7 @@ mod tests {
                         "#"
                     } else if cell >= 0.3 {
                         "+"
-                    } else if cell >= 0.1 {
+                    } else if cell > 0.0 {
                         "."
                     } else {
                         " "
@@ -106,7 +108,7 @@ mod tests {
                 })
                 .collect();
             let actual_vision = actual_vision.join("");
-            assert_eq!(actual_vision, self.expected_vision);
+            assert_eq!(actual_vision, self.expected);
         }
     }
 
@@ -119,25 +121,133 @@ mod tests {
         use super::*;
         use test_case::test_case;
 
-        #[test_case(1.0, "    +        ")]
-        #[test_case(0.9, "   +         ")]
-        #[test_case(0.8, "   +         ")]
-        #[test_case(0.7, "  .          ")]
-        #[test_case(0.6, "  .          ")]
+        #[test_case(1.0, "      +      ")]
+        #[test_case(0.9, "      +      ")]
+        #[test_case(0.8, "      +      ")]
+        #[test_case(0.7, "      .      ")]
+        #[test_case(0.6, "      .      ")]
         #[test_case(0.5, "             ")]
         #[test_case(0.4, "             ")]
         #[test_case(0.3, "             ")]
         #[test_case(0.2, "             ")]
         #[test_case(0.1, "             ")]
-        fn test(fov_range: f32, expected_vision: &'static str) {
+        fn test(fov_range: f32, expected: &'static str) {
             TestCase {
                 foods: vec![food(0.5, 1.0)],
-                fov_range,
                 fov_angle: FRAC_PI_2,
                 x: 0.5,
                 y: 0.5,
                 rot: 0.0,
-                expected_vision,
+                fov_range,
+                expected,
+            }
+            .run()
+        }
+    }
+
+    mod different_rotations {
+        use super::*;
+        use test_case::test_case;
+
+        #[test_case(0.00 * PI, "         +   ")]
+        #[test_case(0.25 * PI, "        +    ")]
+        #[test_case(0.50 * PI, "      +      ")]
+        #[test_case(0.75 * PI, "    +        ")]
+        #[test_case(1.00 * PI, "   +         ")]
+        #[test_case(1.25 * PI, " +           ")]
+        #[test_case(1.50 * PI, "            +")]
+        #[test_case(1.75 * PI, "           + ")]
+        #[test_case(2.00 * PI, "         +   ")]
+        #[test_case(2.25 * PI, "        +    ")]
+        #[test_case(2.50 * PI, "      +      ")]
+        fn test(rot: f32, expected: &'static str) {
+            TestCase {
+                foods: vec![food(0.0, 0.5)],
+                fov_range: 1.0,
+                fov_angle: 2.0 * PI,
+                x: 0.5,
+                y: 0.5,
+                rot,
+                expected,
+            }
+            .run()
+        }
+    }
+
+    mod different_positions {
+        use super::*;
+        use test_case::test_case;
+
+        // Checking the X axis:
+        // (you can see the bird is "flying away" from the foods)
+        #[test_case(0.9, 0.5, "#           #")]
+        #[test_case(0.8, 0.5, "  #       #  ")]
+        #[test_case(0.7, 0.5, "   +     +   ")]
+        #[test_case(0.6, 0.5, "    +   +    ")]
+        #[test_case(0.5, 0.5, "    +   +    ")]
+        #[test_case(0.4, 0.5, "     + +     ")]
+        #[test_case(0.3, 0.5, "     . .     ")]
+        #[test_case(0.2, 0.5, "     . .     ")]
+        #[test_case(0.1, 0.5, "     . .     ")]
+        #[test_case(0.0, 0.5, "             ")]
+        //
+        // Checking the Y axis:
+        // (you can see the bird is "flying alongside" the foods)
+        #[test_case(0.5, 0.0, "            +")]
+        #[test_case(0.5, 0.1, "          + .")]
+        #[test_case(0.5, 0.2, "         +  +")]
+        #[test_case(0.5, 0.3, "        + +  ")]
+        #[test_case(0.5, 0.4, "      +  +   ")]
+        #[test_case(0.5, 0.6, "   +  +      ")]
+        #[test_case(0.5, 0.7, "  + +        ")]
+        #[test_case(0.5, 0.8, "+  +         ")]
+        #[test_case(0.5, 0.9, ". +          ")]
+        #[test_case(0.5, 1.0, "+            ")]
+
+        fn test(x: f32, y: f32, expected: &'static str) {
+            TestCase {
+                foods: vec![food(1.0, 0.4), food(1.0, 0.6)],
+                fov_range: 1.0,
+                fov_angle: FRAC_PI_2,
+                rot: 3.0 * FRAC_PI_2,
+                x,
+                y,
+                expected,
+            }
+            .run()
+        }
+    }
+
+    mod different_fov_angles {
+        use super::*;
+        use test_case::test_case;
+
+        #[test_case(0.25 * PI, " +         + ")] // FOV is narrow = 2 foods
+        #[test_case(0.50 * PI, ".  +     +  .")]
+        #[test_case(0.75 * PI, "  . +   + .  ")] // FOV gets progressively
+        #[test_case(1.00 * PI, "   . + + .   ")] // wider and wider...
+        #[test_case(1.25 * PI, "   . + + .   ")]
+        #[test_case(1.50 * PI, ".   .+ +.   .")]
+        #[test_case(1.75 * PI, ".   .+ +.   .")]
+        #[test_case(2.00 * PI, "+.  .+ +.  .+")] // FOV is the widest = 8 foods
+        fn test(fov_angle: f32, expected: &'static str) {
+            TestCase {
+                foods: vec![
+                    food(0.0, 0.0),
+                    food(0.0, 0.33),
+                    food(0.0, 0.66),
+                    food(0.0, 1.0),
+                    food(1.0, 0.0),
+                    food(1.0, 0.33),
+                    food(1.0, 0.66),
+                    food(1.0, 1.0),
+                ],
+                fov_angle,
+                fov_range: 1.0,
+                x: 0.5,
+                y: 0.5,
+                rot: 3.0 * FRAC_PI_2,
+                expected,
             }
             .run()
         }
