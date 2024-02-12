@@ -1,4 +1,4 @@
-pub use self::{animal::*, animal_individual::*, eye::*, food::*, world::*};
+pub use self::{animal::*, animal_individual::*, brain::*, eye::*, food::*, world::*};
 use lib_genetic_algorithm as ga;
 use lib_neural_network as nn;
 use nalgebra as na;
@@ -7,6 +7,7 @@ use std::f32::consts::FRAC_PI_2;
 
 mod animal;
 mod animal_individual;
+mod brain;
 mod eye;
 mod food;
 mod world;
@@ -35,8 +36,7 @@ impl Simulation {
     pub fn world(&self) -> &World {
         &self.world
     }
-
-    pub fn step(&mut self, rng: &mut dyn RngCore) {
+    pub fn step(&mut self, rng: &mut dyn RngCore) -> Option<ga::Statistics> {
         self.process_collisions(rng);
         self.process_brains();
         self.process_movements();
@@ -44,7 +44,16 @@ impl Simulation {
         self.age += 1;
 
         if self.age > GENERATION_LENGTH {
-            self.evolve(rng);
+            Some(self.evolve(rng))
+        } else {
+            None
+        }
+    }
+    pub fn train(&mut self, rng: &mut dyn RngCore) -> ga::Statistics {
+        loop {
+            if let Some(summary) = self.step(rng) {
+                return summary;
+            }
         }
     }
     pub fn process_movements(&mut self) {
@@ -71,14 +80,14 @@ impl Simulation {
                 animal
                     .eye
                     .process_vision(animal.position, animal.rotation, &self.world.foods);
-            let response = animal.brain.propagate(vision);
+            let response = animal.brain.nn.propagate(vision);
             let speed = response[0].clamp(-SPEED_ACCEL, SPEED_ACCEL);
             let rotation = response[1].clamp(-ROTATION_ACCEL, ROTATION_ACCEL);
             animal.speed = (animal.speed + speed).clamp(MIN_SPEED, MAX_SPEED);
             animal.rotation = na::Rotation2::new(animal.rotation.angle() + rotation);
         }
     }
-    pub fn evolve(&mut self, rng: &mut dyn RngCore) {
+    pub fn evolve(&mut self, rng: &mut dyn RngCore) -> ga::Statistics {
         self.age = 0;
 
         // Prep animals
@@ -90,7 +99,7 @@ impl Simulation {
             .collect();
 
         // Evolve animals
-        let evolved_population = self.ga.evolve(rng, &current_population);
+        let (evolved_population, stats) = self.ga.evolve(rng, &current_population);
 
         // Set animals
         self.world.animals = evolved_population
@@ -102,5 +111,6 @@ impl Simulation {
         for food in &mut self.world.foods {
             food.position = rng.gen();
         }
+        stats
     }
 }

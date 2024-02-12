@@ -1,4 +1,6 @@
-pub use self::{chromosome::*, crossover::*, individual::*, mutation::*, selection::*};
+pub use self::{
+    chromosome::*, crossover::*, individual::*, mutation::*, selection::*, statistics::*,
+};
 
 use rand::seq::SliceRandom;
 use rand::{Rng, RngCore};
@@ -8,6 +10,7 @@ mod crossover;
 mod individual;
 mod mutation;
 mod selection;
+mod statistics;
 
 pub struct GeneticAlgorithm<S> {
     selection_method: S,
@@ -31,12 +34,12 @@ where
         }
     }
 
-    pub fn evolve<I>(&self, rng: &mut dyn RngCore, population: &[I]) -> Vec<I>
+    pub fn evolve<I>(&self, rng: &mut dyn RngCore, population: &[I]) -> (Vec<I>, Statistics)
     where
         I: Individual,
     {
         assert!(!population.is_empty());
-        (0..population.len())
+        let new_population = (0..population.len())
             .map(|_| {
                 // Select two individuals to mate
                 let parent_a = self.selection_method.select(rng, population).chromosome();
@@ -49,7 +52,9 @@ where
 
                 I::create(child)
             })
-            .collect()
+            .collect();
+        let stats = Statistics::new(population);
+        (new_population, stats)
     }
 }
 

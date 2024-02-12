@@ -32,6 +32,11 @@ function drawCircle(ctxt, x, y, radius) {
 }
 
 const simulation = new sim.Simulation();
+
+document.getElementById("train").onclick = function() {
+  console.log(simulation.train());
+}
+
 const world = simulation.world();
 console.log(world);
 
