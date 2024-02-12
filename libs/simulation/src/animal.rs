@@ -7,6 +7,7 @@ pub struct Animal {
     pub(crate) speed: f32,
     pub(crate) eye: Eye,
     pub(crate) brain: nn::Network,
+    pub(crate) satiation: usize, // Food eaten
 }
 
 impl Animal {
@@ -30,6 +31,7 @@ impl Animal {
             speed: 0.002,
             eye,
             brain,
+            satiation: 0,
         }
     }
     pub fn position(&self) -> na::Point2<f32> {

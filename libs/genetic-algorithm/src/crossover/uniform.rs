@@ -1,7 +1,7 @@
 use crate::*;
 use rand::Rng;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct UniformCrossover;
 
 impl UniformCrossover {

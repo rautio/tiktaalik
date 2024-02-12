@@ -33,6 +33,13 @@ impl Neuron {
         // Activation function - rectified linear unit (ReLU)
         (self.bias + output).max(0.0)
     }
+    pub fn from_weights(input_size: usize, weights: &mut dyn Iterator<Item = f32>) -> Self {
+        let bias = weights.next().expect("got not enough weights");
+        let weights = (0..input_size)
+            .map(|_| weights.next().expect("got not enough weights"))
+            .collect();
+        Self { bias, weights }
+    }
 }
 
 #[cfg(test)]
