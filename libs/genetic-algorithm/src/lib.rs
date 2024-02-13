@@ -87,7 +87,7 @@ mod tests {
         ];
         // Evolve over generations
         for _ in 0..10 {
-            population = ga.evolve(&mut rng, &population);
+            (population, _) = ga.evolve(&mut rng, &population);
         }
         let expected = vec![
             individual(&[2.4740927, 4.789879, 1.6941864]),
